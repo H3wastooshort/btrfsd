@@ -30,13 +30,13 @@ G_DEFINE_QUARK (btd-mail-error-quark, btd_mail_error)
 /**
  * btd_have_sendmail:
  *
- * Returns: %TRUE if the sendmail program is available.
+ * Returns: %TRUE if the msmtp program is available.
  */
 gboolean
 btd_have_sendmail (void)
 {
     g_autofree gchar *sendmail_exe = NULL;
-    sendmail_exe = g_find_program_in_path ("sendmail");
+    sendmail_exe = g_find_program_in_path ("msmtp");
     return sendmail_exe != NULL;
 }
 
@@ -46,7 +46,7 @@ btd_have_sendmail (void)
  * @body: The message body, including the subject line
  * @error: A #GError.
  *
- * Send any E-Mail via sendmail.
+ * Send any E-Mail via msmtp.
  *
  * Return: %TRUE on success.
  */
@@ -63,12 +63,12 @@ btd_send_email (const gchar *to_address, const gchar *body, GError **error)
     gint stdin_fd;
     gint exit_status;
 
-    sendmail_exe = g_find_program_in_path ("sendmail");
+    sendmail_exe = g_find_program_in_path ("msmtp");
     if (sendmail_exe == NULL) {
         g_set_error_literal (error,
                              BTD_MAIL_ERROR,
                              BTD_MAIL_ERROR_FAILED,
-                             "Unable to find the `sendmail` command, can not send emails.");
+                             "Unable to find the `msmtp` command, can not send emails.");
         return FALSE;
     }
 
@@ -89,11 +89,11 @@ btd_send_email (const gchar *to_address, const gchar *body, GError **error)
                                    NULL,
                                    NULL,
                                    &tmp_error)) {
-        g_propagate_prefixed_error (error, tmp_error, "Failed to send mail with sendmail:");
+        g_propagate_prefixed_error (error, tmp_error, "Failed to send mail with msmtp:");
         return FALSE;
     }
 
-    /* write email content to stdin of sendmail */
+    /* write email content to stdin of msmtp */
     email_content_len = strlen (email_content);
     write_result = write (stdin_fd, email_content, email_content_len);
 
@@ -104,13 +104,13 @@ btd_send_email (const gchar *to_address, const gchar *body, GError **error)
         g_set_error_literal (error,
                              BTD_MAIL_ERROR,
                              BTD_MAIL_ERROR_FAILED,
-                             "Failed to write email content to sendmail process.");
+                             "Failed to write email content to msmtp process.");
         return FALSE;
     } else if ((size_t) write_result < email_content_len) {
         g_set_error (error,
                      BTD_MAIL_ERROR,
                      BTD_MAIL_ERROR_FAILED,
-                     "Could not write all data to sendmail: only %zd of %zu bytes written.",
+                     "Could not write all data to msmtp: only %zd of %zu bytes written.",
                      write_result,
                      email_content_len);
         return FALSE;
@@ -121,7 +121,7 @@ btd_send_email (const gchar *to_address, const gchar *body, GError **error)
         g_set_error (error,
                      BTD_MAIL_ERROR,
                      BTD_MAIL_ERROR_FAILED,
-                     "Sendmail failed with exist status %d",
+                     "msmtp failed with exist status %d",
                      exit_status);
         return FALSE;
     }
